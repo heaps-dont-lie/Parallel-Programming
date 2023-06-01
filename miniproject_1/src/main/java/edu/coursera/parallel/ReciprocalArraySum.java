@@ -88,6 +88,11 @@ public final class ReciprocalArraySum {
      */
     private static class ReciprocalArraySumTask extends RecursiveAction {
         /**
+         * THRESHOLD
+         */
+        static int THRESHOLD = 1000;
+
+        /**
          * Starting index for traversal done by this task.
          */
         private final int startIndexInclusive;
@@ -129,11 +134,23 @@ public final class ReciprocalArraySum {
         @Override
         protected void compute() {
             // TODO
-            double sum = 0.0;
-            for (int i = this.startIndexInclusive; i < this.endIndexExclusive; i++) {
-                sum += 1 / this.input[i];
-            }
-            this.value = sum;
+            for (int i = startIndexInclusive; i < endIndexExclusive; i++) {
+                    value += 1 / input[i];
+                }
+
+//            if (endIndexExclusive - startIndexInclusive > THRESHOLD) {
+//                int mid = (endIndexExclusive + startIndexInclusive) / 2;
+//                ReciprocalArraySumTask leftHalf = new ReciprocalArraySumTask(startIndexInclusive, mid, input);
+//                ReciprocalArraySumTask rightHalf = new ReciprocalArraySumTask(mid, endIndexExclusive, input);
+//                leftHalf.fork();
+//                rightHalf.compute();
+//                leftHalf.join();
+//                value = leftHalf.getValue() + rightHalf.getValue();
+//            } else {
+//                for (int i = startIndexInclusive; i < endIndexExclusive; i++) {
+//                    value += 1 / input[i];
+//                }
+//            }
         }
     }
 
@@ -152,17 +169,15 @@ public final class ReciprocalArraySum {
         double sum = 0;
 
         //ForkJoinPool pool = new ForkJoinPool(2);
-        ForkJoinPool pool = ForkJoinPool.commonPool();
+        //ForkJoinPool pool = ForkJoinPool.commonPool();
         ReciprocalArraySumTask leftHalf = new ReciprocalArraySumTask(0, input.length/2, input);
         ReciprocalArraySumTask rightHalf = new ReciprocalArraySumTask(input.length/2, input.length, input);
 
-        pool.execute(leftHalf);
-        pool.execute(rightHalf);
+        ForkJoinTask.invokeAll(leftHalf, rightHalf);
+//        pool.execute(fullArray);
+//        fullArray.join();
 
-        leftHalf.join();
-        rightHalf.join();
-
-        sum += leftHalf.getValue() + rightHalf.getValue();
+        sum = leftHalf.getValue() + rightHalf.getValue();
 
         return sum;
     }
@@ -180,11 +195,9 @@ public final class ReciprocalArraySum {
     protected static double parManyTaskArraySum(final double[] input,
             final int numTasks) {
         double sum = 0.0;
-        int min_range = Integer.MAX_VALUE;
-        int max_range = Integer.MIN_VALUE;
 
         // Create a ForkJoinPool with the specified number of threads
-        ForkJoinPool pool = new ForkJoinPool(numTasks);
+        //ForkJoinPool pool = new ForkJoinPool(numTasks);
         //ForkJoinPool pool = ForkJoinPool.commonPool();
 
         // Create an array to hold all tasks
@@ -201,12 +214,14 @@ public final class ReciprocalArraySum {
             //tasks[i].fork();
 
             // Execute
-            pool.execute(tasks[i]);
+            //pool.execute(tasks[i]);
         }
+
+        RecursiveAction.invokeAll(tasks);
 
         // Join the tasks and accumulate the result
         for (ReciprocalArraySumTask task : tasks) {
-            task.join();
+            //task.join();
             sum += task.getValue();
         }
 
